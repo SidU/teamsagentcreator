@@ -11,7 +11,19 @@ When a user asks to create/register a Teams bot for OpenClaw.ai or similar, foll
 Ask the user for:
 - **Bot name**: A unique name for the bot (alphanumeric + hyphens, 3-36 chars)
 - **Resource group name**: Azure resource group (will be created if it doesn't exist)
-- **Messaging endpoint**: The HTTPS callback URL where the bot receives messages (e.g., `https://example.trycloudflare.com/api/messages`)
+- **Messaging endpoint**: The HTTPS callback URL where the bot receives messages
+
+#### Getting the Messaging Endpoint URL
+
+**Important:** If the user doesn't have a messaging endpoint URL yet, instruct them to:
+
+1. **Message their OpenClaw bot** on WhatsApp, Telegram, or whatever channel they already have configured
+2. **Ask the bot** to configure the Microsoft Teams channel:
+   > "I want to add Microsoft Teams as a channel"
+3. **The bot will ask for their email** to allowlist them for the Teams integration
+4. **OpenClaw will provide the messaging endpoint URL** (e.g., `https://something.trycloudflare.com/api/messages`)
+
+Once they have the messaging endpoint URL, proceed with the registration.
 
 ### 2. Ensure Azure CLI is Installed
 
@@ -61,18 +73,45 @@ The script will:
 - App Secret (MicrosoftAppPassword)
 - Tenant ID (MicrosoftAppTenantId)
 
-### 5. Create the Teams App Package
+### 5. Provide Credentials to OpenClaw Bot
 
-After registration, create a Teams app manifest for sideloading:
+Instruct the user to **send these credentials back to their OpenClaw bot** (on WhatsApp/Telegram/etc.) so it can complete the Microsoft Teams configuration:
 
-#### a. Create a directory for the app package
+> "Send the following to your OpenClaw bot:
+> - App ID: `<APP_ID>`
+> - App Secret: `<APP_SECRET>`
+> - Tenant ID: `<TENANT_ID>`
+>
+> The bot will use these to configure the Microsoft Teams plugin."
+
+The user can simply copy/paste or type these values to their bot in the existing conversation where they requested the Teams channel setup.
+
+### 6. Create the Teams App Package
+
+After registration, create a Teams app manifest for sideloading. **Always create the app package for the user** - don't skip this step.
+
+#### a. Gather App Package Information
+
+Ask the user for these optional customizations (provide sensible defaults if they skip):
+- **Display name**: Short name shown in Teams (default: use bot name)
+- **Description**: Short description of the bot (default: "AI-powered assistant")
+- **Developer/Company name**: Who built this (default: "Developer")
+- **Accent color**: Hex color for branding (default: "#5558AF")
+
+#### b. Create a directory for the app package
 ```bash
 mkdir -p teams-app
 ```
 
-#### b. Create `manifest.json`
+#### c. Create `manifest.json`
 
-Use this template, replacing `<APP_ID>`, `<BOT_NAME>`, and `<ENDPOINT_DOMAIN>`:
+Use this template, replacing placeholders with values from registration and user input:
+- `<APP_ID>`: The App ID from registration
+- `<BOT_DISPLAY_NAME>`: User-provided or bot name
+- `<DESCRIPTION>`: User-provided or default
+- `<DEVELOPER_NAME>`: User-provided or default
+- `<ACCENT_COLOR>`: User-provided or default
+- `<ENDPOINT_DOMAIN>`: Domain from messaging endpoint (without https:// or path)
 
 ```json
 {
@@ -81,24 +120,24 @@ Use this template, replacing `<APP_ID>`, `<BOT_NAME>`, and `<ENDPOINT_DOMAIN>`:
   "version": "1.0.0",
   "id": "<APP_ID>",
   "developer": {
-    "name": "Developer",
-    "websiteUrl": "https://example.com",
-    "privacyUrl": "https://example.com/privacy",
-    "termsOfUseUrl": "https://example.com/terms"
+    "name": "<DEVELOPER_NAME>",
+    "websiteUrl": "https://openclaw.ai",
+    "privacyUrl": "https://openclaw.ai/privacy",
+    "termsOfUseUrl": "https://openclaw.ai/terms"
   },
   "name": {
-    "short": "<BOT_NAME>",
-    "full": "<BOT_NAME> Bot"
+    "short": "<BOT_DISPLAY_NAME>",
+    "full": "<BOT_DISPLAY_NAME>"
   },
   "description": {
-    "short": "AI-powered assistant",
-    "full": "An AI-powered assistant bot."
+    "short": "<DESCRIPTION>",
+    "full": "<DESCRIPTION>"
   },
   "icons": {
     "outline": "outline.png",
     "color": "color.png"
   },
-  "accentColor": "#5558AF",
+  "accentColor": "<ACCENT_COLOR>",
   "bots": [
     {
       "botId": "<APP_ID>",
@@ -112,7 +151,7 @@ Use this template, replacing `<APP_ID>`, `<BOT_NAME>`, and `<ENDPOINT_DOMAIN>`:
 }
 ```
 
-#### c. Create placeholder icons
+#### d. Create placeholder icons
 
 Use Python to create simple placeholder icons:
 ```python
@@ -121,17 +160,24 @@ Image.new('RGBA', (192, 192), (85, 88, 175, 255)).save('teams-app/color.png')
 Image.new('RGBA', (32, 32), (0, 0, 0, 0)).save('teams-app/outline.png')
 ```
 
-Or inform the user they need to provide their own icons:
-- `color.png`: 192x192 pixels
-- `outline.png`: 32x32 pixels (transparent background)
+Or inform the user they can replace these later with custom icons:
+- `color.png`: 192x192 pixels (full color app icon)
+- `outline.png`: 32x32 pixels (transparent background, single color)
 
-#### d. Create the zip package
+#### e. Create the zip package
 
 ```bash
 cd teams-app && zip -r ../<bot-name>.zip manifest.json color.png outline.png
 ```
 
-### 6. Provide Sideloading Instructions
+#### f. Move to user-accessible location
+
+Move the zip file somewhere easy to find (e.g., Downloads):
+```bash
+mv <bot-name>.zip ~/Downloads/
+```
+
+### 7. Provide Sideloading Instructions
 
 Tell the user:
 1. Open Microsoft Teams
