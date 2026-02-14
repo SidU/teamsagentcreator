@@ -1,0 +1,7 @@
+# Credentials
+*-credentials.json
+*.secret
+.env
+
+# OS
+.DS_Store
