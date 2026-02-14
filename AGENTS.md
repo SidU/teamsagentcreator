@@ -186,6 +186,67 @@ Tell the user:
 4. Click **Upload an app** → **Upload a custom app**
 5. Select the generated `.zip` file
 
+## Testing with Playwright MCP
+
+Playwright MCP enables Claude Code to control a browser and interact with the Teams web client directly. This is useful for end-to-end testing of a bot after registration and sideloading.
+
+### Setup
+
+Add the Playwright MCP server to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Code and verify with `/mcp` — you should see `playwright` listed with browser tools.
+
+### Testing a Bot in Teams
+
+1. **Navigate to Teams:**
+   ```
+   browser_navigate → https://teams.cloud.microsoft.com
+   ```
+   Sign in if prompted (use `browser_snapshot` to see the page, `browser_click`/`browser_type` to interact).
+
+2. **Open the bot chat:** Use `browser_snapshot` to find the bot in the sidebar, then `browser_click` to select it.
+
+3. **Send a test message:**
+   ```
+   browser_click → message input textbox
+   browser_type → "Hello, are you there?" (with submit: true)
+   ```
+
+4. **Wait for response and verify:**
+   ```
+   browser_wait_for → expected text or time delay
+   browser_snapshot → read the bot's reply
+   ```
+
+### Example Test Scenarios
+
+| Test | Message | Validates |
+|------|---------|-----------|
+| Basic connectivity | `hi` | Bot is running and reachable via Teams |
+| Identity | `what is your name?` | Bot responds with correct persona |
+| Tool use | `create a file called test.txt with "hello"` | Agent tools are working |
+| Session memory | Send two related messages | Context preserved across turns |
+| Reset | `/reset` then ask about prior context | Session clearing works |
+
+### Tips
+
+- **Bot must be running** with its messaging endpoint reachable (e.g., via dev tunnel)
+- **Dev tunnel must be hosting** — if the bot doesn't respond, check your tunnel is active
+- Use `browser_take_screenshot` for visual verification if `browser_snapshot` doesn't capture enough detail
+- `browser_wait_for` with a time delay (e.g., 15-20 seconds) is useful when waiting for agent tool execution
+
 ## Utility Scripts
 
 ### Update Messaging Endpoint
